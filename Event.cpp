@@ -1,32 +1,17 @@
-#include "Process.cpp"
+#include "Event.h"
 
-enum EventType {
-    process_arrival,
-    process_departure,
-    quantum_expiration
-};
 
-class Event{
+// Constructor
+Event::Event(EventType eventType, Process* proc){
+    this->eventType = eventType;
+    this->process = proc;
+}
 
-    private:
-        EventType eventType;
-        Process* process;
-    public:
-        EventType get_eventType();
-        Process* get_process();
+// > Getters:
+EventType Event::get_eventType(){
+    return this->eventType;
+}
 
-    // Constructor
-    Event::Event(EventType eventType, Process* proc){
-        this->eventType = eventType;
-        this->process = proc;
-    }
-
-    // > Getters:
-    EventType Event::get_eventType(){
-        return this->eventType;
-    }
-
-    Process* Event::get_process(){
-        return this->process;
-    }
-};
+Process* Event::get_process(){
+    return this->process;
+}
