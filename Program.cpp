@@ -55,6 +55,7 @@ void Simulator(double avg_arr_rate, double avg_svc_rate, double base_quant, doub
 
     // 1. Generate a workload of 10,000 processes
     const int NUM_PROCESSES = 10000;
+    int completedProcesses = 0;
     Process processes[NUM_PROCESSES];
 
     double service_time, local_arrival_time;
@@ -70,7 +71,7 @@ void Simulator(double avg_arr_rate, double avg_svc_rate, double base_quant, doub
         processes[i].set_arr_time(generatedTime + local_arrival_time);
         processes[i].set_priority(priority);
 
-        generatedTime += processes[i].get_svc_time();
+        generatedTime += processes[i].get_remaining_svc_time();
         readyQueue.push(processes[i]);
     }
 
@@ -108,41 +109,69 @@ void Simulator(double avg_arr_rate, double avg_svc_rate, double base_quant, doub
     // **************************************************
 
     // Get first process, create ready event:
-    Process* firstProcess = &processes[0];
+    Process* firstProcess = &(readyQueue.front());
     Event firstProcessReadyEvent = Event(process_arrival, firstProcess);
     eventQueue.push(firstProcessReadyEvent);
 
-    // Handle first process in eventQueue
-    Event eventToExecute = eventQueue.front();
-    eventQueue.pop();
+    // MAIN LOOP
+    while (completedProcesses < NUM_PROCESSES){
 
-    if (eventToExecute.get_eventType() == process_arrival){
+        // Handle first process in eventQueue
+        Event eventToExecute = eventQueue.front();
+        Process* currentProcess = eventToExecute.get_process();
+        eventQueue.pop();
 
-        Process* processToExecute = eventToExecute.get_process();
+        if (eventToExecute.get_eventType() == process_arrival){
 
-        // Create arrival event for the following process
-        Process* nextProcess = &readyQueue.front();
-        readyQueue.pop();
-        Event nextProcessArrivalEvent = Event(process_arrival, nextProcess);
-        eventQueue.push(nextProcessArrivalEvent);
+            if (&(readyQueue.front()) == currentProcess){
+                cout << "Process " << (*currentProcess).get_PID() << " arrived for service.";
+                readyQueue.pop();
+            } else {
+                cout << "\n*******************************************************";
+                cout << "\nERROR: Front process in readyQueue is misaligned!\n";
+                cout << "\n*******************************************************\n";
+                return;
+            }
 
-        // Create departure event for current process
-        Event departureEvent = Event(process_departure, processToExecute);
+            // Create arrival event for the following process
+            Process* nextProcess = &(readyQueue.front());
+            Event nextProcessArrivalEvent = Event(process_arrival, nextProcess);
+            eventQueue.push(nextProcessArrivalEvent);
 
-        // Handle quantum of execution for current process
-        double quantumTime = calculator.calculate_quantum(base_quant, A, B, processToExecute);
+            // Create quantum expiration event for current process
+            Event departureEvent = Event(quantum_expiration, currentProcess);
 
-        cpu.setBusy();
+            // Handle quantum of execution for current process
+            double quantumTime = calculator.calculate_quantum(base_quant, A, B, currentProcess);
+            (*currentProcess).do_execution(quantumTime);
+            currentTime += quantumTime;
 
-    } else if (eventToExecute.get_eventType() == process_departure){
+            cpu.setBusy();
 
-    } else if (eventToExecute.get_eventType() == quantum_expiration){
+        } else if (eventToExecute.get_eventType() == process_departure){
 
-    } else { // ERROR: Invalid event type
-        cout << "\n******************************";
-        cout << "\nERROR: Invalid event type!\n";
-        cout << "\n******************************\n";
+            cpu.setIdle();
+            completedProcesses++;
+
+        } else if (eventToExecute.get_eventType() == quantum_expiration){
+
+            // If there's remaining service time, send back to readyQueue.
+            // Else, create departure event.
+
+            if ((*currentProcess).get_remaining_svc_time() > 0.0){
+                readyQueue.push(*currentProcess);
+            } else {
+                Event departureEvent = Event(process_departure, currentProcess);
+                eventQueue.push(departureEvent);
+            }
+
+        } else { // ERROR: Invalid event type
+            cout << "\n******************************";
+            cout << "\nERROR: Invalid event type!\n";
+            cout << "\n******************************\n";
+        }
     }
+    
 
 
 }

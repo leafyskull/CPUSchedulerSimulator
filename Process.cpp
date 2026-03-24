@@ -61,9 +61,9 @@ double Process::get_total_execution_time(){
 void Process::do_execution(double amount){
     if (this->remaining_service_time - amount < 0){
         this->total_execution_time += remaining_service_time;
-        remaining_service_time = 0.0;
+        this->remaining_service_time = 0.0;
+    } else{
+        this->total_execution_time += amount;
+        this->remaining_service_time -= amount;
     }
-
-    this->total_execution_time += amount;
-    this->remaining_service_time -= amount;
 }

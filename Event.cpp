@@ -1,7 +1,12 @@
 #include "Event.h"
 
 
-// Constructor
+// > Constructors:
+Event::Event(){
+    this->eventType = INVALID_TYPE;
+    this->process = nullptr;
+}
+
 Event::Event(EventType eventType, Process* proc){
     this->eventType = eventType;
     this->process = proc;
