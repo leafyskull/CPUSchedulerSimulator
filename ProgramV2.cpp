@@ -72,7 +72,9 @@ void Simulator(double avg_arr_rate, double avg_svc_rate, double base_quant, doub
         processes[i].set_priority(priority);
 
         generatedTime += processes[i].get_remaining_svc_time();
-        readyQueue.push(processes[i]);
+
+        Event arrivalEvent = Event(process_arrival, &(processes[i]));
+        eventQueue.push(arrivalEvent);
     }
 
     // **************************************************
@@ -109,62 +111,30 @@ void Simulator(double avg_arr_rate, double avg_svc_rate, double base_quant, doub
     // **************************************************
 
     // Get first process, create ready event:
-    Process* firstProcess = &(readyQueue.front());
+    Process* firstProcess = &processes[0];
     Event firstProcessReadyEvent = Event(process_arrival, firstProcess);
     eventQueue.push(firstProcessReadyEvent);
 
     // MAIN LOOP
     while (completedProcesses < NUM_PROCESSES){
 
-        // Handle next process in eventQueue
+        // Grab next event in eventQueue
         Event eventToExecute = eventQueue.front();
         Process* currentProcess = eventToExecute.get_process();
         eventQueue.pop();
 
         // If we have idle time until the next process' arrival
-        if (!cpu.isBusy() && currentTime < (*currentProcess).get_arr_time()){
+        if (!cpu.isBusy() && currentTime < (*currentProcess).get_arr_time() 
+            && eventToExecute.get_eventType() == process_arrival){
             currentTime = (*currentProcess).get_arr_time();
         }
 
-        // If we are idle and have processes in the readyQueue
-        else if (!cpu.isBusy() && readyQueue.size() > 0){
-
-        }
+        
 
         if (eventToExecute.get_eventType() == process_arrival){
 
-            // If the CPU is busy, send to readyQueue
-            if (cpu.isBusy()){
-                readyQueue.push(*currentProcess);
-            }
-
-            // Else, handle immediately
-
-            if (&(readyQueue.front()) != currentProcess){
-                cout << "\n*******************************************************";
-                cout << "\nERROR: Front process in readyQueue is misaligned!\n";
-                cout << "\n*******************************************************\n";
-                return;
-            }
-
-            cout << "Process " << (*currentProcess).get_PID() << " arrived for service.";
-            readyQueue.pop();
-
-            // Create arrival event for the following process
-            Process* nextProcess = &(readyQueue.front());
-            Event nextProcessArrivalEvent = Event(process_arrival, nextProcess);
-            eventQueue.push(nextProcessArrivalEvent);
-
-            // Create quantum expiration event for current process
-            Event departureEvent = Event(quantum_expiration, currentProcess);
-
-            // Handle quantum of execution for current process
-            double quantumTime = calculator.calculate_quantum(base_quant, A, B, currentProcess);
-            (*currentProcess).do_execution(quantumTime);
-
-            currentTime += quantumTime;
-
-            cpu.setBusy();
+            // Add process to readyQueue
+            readyQueue.push(*currentProcess);
 
         } else if (eventToExecute.get_eventType() == process_departure){
 
@@ -183,10 +153,26 @@ void Simulator(double avg_arr_rate, double avg_svc_rate, double base_quant, doub
                 eventQueue.push(departureEvent);
             }
 
+            cpu.setIdle();
+
         } else { // ERROR: Invalid event type
             cout << "\n******************************";
             cout << "\nERROR: Invalid event type!\n";
             cout << "\n******************************\n";
+        }
+
+        // Execute next process, if any
+        if (readyQueue.size() > 0){
+
+            // Grab next process
+            currentProcess = &readyQueue.front();
+            readyQueue.pop();
+
+            // Simulate execution, advance clock, create quant_expiration event
+            double quantum = calculator.calculate_quantum(base_quant, A, B, currentProcess);
+            currentProcess->do_execution(quantum);
+            currentTime += quantum;
+            Event quantExpireEvent = Event(quantum_expiration, currentProcess);
         }
     }
     
