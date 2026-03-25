@@ -126,10 +126,7 @@ void Simulator(double avg_arr_rate, double avg_svc_rate, double base_quant, doub
             currentTime = (*currentProcess).get_arr_time();
         }
 
-        // If we are idle and have processes in the readyQueue
-        else if (!cpu.isBusy() && readyQueue.size() > 0){
-
-        }
+        
 
         if (eventToExecute.get_eventType() == process_arrival){
 

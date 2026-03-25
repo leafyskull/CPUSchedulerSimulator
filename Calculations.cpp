@@ -12,7 +12,7 @@ double calculate_arrival_time(int average_arrival_rate){
     std::random_device rand;
     std::mt19937 gen(rand());
 
-    std::poisson_distribution<double> dist(average_arrival_rate);
+    std::poisson_distribution<> dist(average_arrival_rate);
 
     return dist(gen);
 }
@@ -24,7 +24,7 @@ double calculate_service_time(double average_service_time){
     std::random_device rand;
     std::mt19937 gen(rand());
 
-    std::exponential_distribution<double> dist(average_service_time);
+    std::exponential_distribution<> dist(average_service_time);
 
     return dist(gen);
 }

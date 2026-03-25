@@ -45,6 +45,7 @@ void Simulator(double avg_arr_rate, double avg_svc_rate, double base_quant, doub
 
     queue<Process> readyQueue; // Ready queue of processes
     queue<Event> eventQueue; // Queue of events
+    queue<Event> arrivalEvents; // Queue of arrival events, generated alongside processes
     CPU cpu; // CPU we will use
 
     double currentTime = 0.0; // Total time clock
@@ -74,7 +75,7 @@ void Simulator(double avg_arr_rate, double avg_svc_rate, double base_quant, doub
         generatedTime += processes[i].get_remaining_svc_time();
 
         Event arrivalEvent = Event(process_arrival, &(processes[i]));
-        eventQueue.push(arrivalEvent);
+        arrivalEvents.push(arrivalEvent);
     }
 
     // **************************************************
@@ -112,8 +113,10 @@ void Simulator(double avg_arr_rate, double avg_svc_rate, double base_quant, doub
 
     // Get first process, create ready event:
     Process* firstProcess = &processes[0];
-    Event firstProcessReadyEvent = Event(process_arrival, firstProcess);
-    eventQueue.push(firstProcessReadyEvent);
+    Event firstProcessArrivalEvent = arrivalEvents.front();
+    arrivalEvents.pop();
+    eventQueue.push(firstProcessArrivalEvent);
+    currentTime = firstProcess->get_arr_time();
 
     // MAIN LOOP
     while (completedProcesses < NUM_PROCESSES){
@@ -123,13 +126,13 @@ void Simulator(double avg_arr_rate, double avg_svc_rate, double base_quant, doub
         Process* currentProcess = eventToExecute.get_process();
         eventQueue.pop();
 
-        // If we have idle time until the next process' arrival
+        // If we have idle time until the next process' arrival - fast forward to arrival
         if (!cpu.isBusy() && currentTime < (*currentProcess).get_arr_time() 
             && eventToExecute.get_eventType() == process_arrival){
             currentTime = (*currentProcess).get_arr_time();
         }
 
-        
+
 
         if (eventToExecute.get_eventType() == process_arrival){
 
@@ -161,8 +164,12 @@ void Simulator(double avg_arr_rate, double avg_svc_rate, double base_quant, doub
             cout << "\n******************************\n";
         }
 
+
+
         // Execute next process, if any
         if (readyQueue.size() > 0){
+
+            cpu.setBusy();
 
             // Grab next process
             currentProcess = &readyQueue.front();
@@ -173,6 +180,8 @@ void Simulator(double avg_arr_rate, double avg_svc_rate, double base_quant, doub
             currentProcess->do_execution(quantum);
             currentTime += quantum;
             Event quantExpireEvent = Event(quantum_expiration, currentProcess);
+
+            cpu.setIdle();
         }
     }
     
