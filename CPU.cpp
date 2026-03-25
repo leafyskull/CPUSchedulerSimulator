@@ -5,6 +5,10 @@ CPU::CPU(){
     this->busy = false;
 }
 
+bool CPU::isBusy(){
+    return this->busy;
+}
+
 void CPU::setBusy(){
     this->busy = true;
 }

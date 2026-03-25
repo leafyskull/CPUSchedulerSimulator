@@ -1,3 +1,5 @@
+#ifndef Process_H
+#define Process_H
 
 class Process{
     private:
@@ -25,3 +27,5 @@ class Process{
 
         void do_execution(double amount);
 };
+
+#endif

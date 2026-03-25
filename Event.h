@@ -1,3 +1,7 @@
+#ifndef Event_H
+#define Event_H
+
+#include "Process.h"
 
 enum EventType {
     INVALID_TYPE,
@@ -17,3 +21,5 @@ class Event{
         EventType get_eventType();
         Process* get_process();
 };
+
+#endif

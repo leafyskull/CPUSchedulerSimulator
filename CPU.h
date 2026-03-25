@@ -1,4 +1,5 @@
-
+#ifndef CPU_H
+#define CPU_H
 
 
 class CPU{
@@ -11,3 +12,5 @@ class CPU{
         void setIdle();
 
 };
+
+#endif

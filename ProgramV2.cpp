@@ -8,7 +8,7 @@
 #include "Calculations.h"
 using namespace std;
 
-
+void Simulator(double avg_arr_rate, double avg_svc_rate, double base_quant, double A, double B);
 
 int main(){
 
@@ -62,6 +62,7 @@ void Simulator(double avg_arr_rate, double avg_svc_rate, double base_quant, doub
     double service_time, local_arrival_time;
     int priority;
 
+    cout << "*** Generating processes ***" << endl;
     for (int i = 0; i < NUM_PROCESSES; i++){
         service_time = calculator.calculate_service_time(avg_svc_rate);
         local_arrival_time = calculator.calculate_arrival_time(avg_arr_rate);
@@ -76,6 +77,15 @@ void Simulator(double avg_arr_rate, double avg_svc_rate, double base_quant, doub
 
         Event arrivalEvent = Event(process_arrival, &(processes[i]));
         arrivalEvents.push(arrivalEvent);
+
+        cout << "******************************" << endl;
+        cout << "Process generated!" << endl;
+        cout << "PID: " << processes[i].get_PID() << endl;
+        cout << "Svc time: " << processes[i].get_remaining_svc_time() << endl;
+        cout << "Arr time: " << processes[i].get_arr_time() << endl;
+        cout << "Static priority: " << processes[i].get_priority() << endl;
+        cout << "******************************" << endl << endl;;
+
     }
 
     // **************************************************
@@ -159,9 +169,9 @@ void Simulator(double avg_arr_rate, double avg_svc_rate, double base_quant, doub
             cpu.setIdle();
 
         } else { // ERROR: Invalid event type
-            cout << "\n******************************";
-            cout << "\nERROR: Invalid event type!\n";
-            cout << "\n******************************\n";
+            cout << "\n******************************" << endl;;
+            cout << "\nERROR: Invalid event type!\n" << endl;;
+            cout << "\n******************************\n" << endl;;
         }
 
 
