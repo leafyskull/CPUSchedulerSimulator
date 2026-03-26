@@ -33,8 +33,7 @@ int main(){
 void Simulator(double avg_arr_rate, double avg_svc_time, double base_quant, double A, double B){
     
     // Need to track:
-    // - Average turnaround time
-    //   Have each process track turnaround time, and average at end?
+    // - Average turnaround time (done)
     // - Average number of context switches
     //   Have each process track their number of arrivals?
     // - Average number of processes in the ready queue
@@ -58,7 +57,9 @@ void Simulator(double avg_arr_rate, double avg_svc_time, double base_quant, doub
     // 1. Generate a workload of 10,000 processes
     const int NUM_PROCESSES = 3;
     int completedProcesses = 0;
+    int contextSwitches = 0;
     Process processes[NUM_PROCESSES];
+
     double turnaroundTimes[NUM_PROCESSES];
 
     double service_time, local_arrival_time;
@@ -113,6 +114,9 @@ void Simulator(double avg_arr_rate, double avg_svc_time, double base_quant, doub
     //
     // **********************************************************************
 
+    Process* currentProcess = nullptr;
+    Process* previousProcess = nullptr;
+
     // MAIN LOOP
     while (completedProcesses < NUM_PROCESSES){
 
@@ -120,7 +124,7 @@ void Simulator(double avg_arr_rate, double avg_svc_time, double base_quant, doub
         Event eventToExecute = eventQueue.top();
         eventQueue.pop();
 
-        Process* currentProcess = eventToExecute.get_process();
+        currentProcess = eventToExecute.get_process();
 
         currentTime = eventToExecute.getTime();
 
@@ -156,7 +160,15 @@ void Simulator(double avg_arr_rate, double avg_svc_time, double base_quant, doub
 
         } else if (eventToExecute.get_eventType() == service_arrival){
 
-            // TEST
+            // Determine if a context switch occurred
+            if (previousProcess == nullptr) 
+                cout << "Loading first process for service. Not counting this as a context switch." << endl;
+            if (previousProcess != nullptr && currentProcess != previousProcess){
+                contextSwitches++;
+                cout << "Context switch happened! From PID " << to_string((*previousProcess).get_PID()) << " to PID " << to_string((*currentProcess).get_PID()) << endl;
+            }
+
+            // Take process out of readyQueue
             if ((*currentProcess).get_PID() != (readyQueue.front()).get_PID()){
                 cout << "Error! Current process is not at front of readyQueue!" << endl;
             } else {
@@ -183,6 +195,8 @@ void Simulator(double avg_arr_rate, double avg_svc_time, double base_quant, doub
             cout << "Scheduling quantum expiration event..." << endl;
             Event quantumExpEvent = Event(quantum_expiration, currentProcess, currentTime + quantum);
             eventQueue.push(quantumExpEvent);
+
+            previousProcess = currentProcess;
 
         } else if (eventToExecute.get_eventType() == quantum_expiration){
 
@@ -216,7 +230,8 @@ void Simulator(double avg_arr_rate, double avg_svc_time, double base_quant, doub
             cout << "******************************\n" << endl;;
         }
 
-        cout << "****************************************" << endl << endl;
+        cout << endl;
+        cout << "Event handling finished!" << endl << endl;
 
     }
 
@@ -227,8 +242,12 @@ void Simulator(double avg_arr_rate, double avg_svc_time, double base_quant, doub
     }
     double avgTurnaroundTime = sum / NUM_PROCESSES;
 
+    cout << "**************************************************" << endl;
     cout << "> Simulator has finished running." << endl;
-    cout << "Average turnaround time: " << to_string(avgTurnaroundTime) << " seconds" << endl;
+    cout << "> RESULTS: " << endl;
+    cout << "> Average turnaround time: " << to_string(avgTurnaroundTime) << " seconds" << endl;
+    cout << "> Total number of context switches: " << to_string(contextSwitches) << endl;
+    cout << "> Average number of context switches per process: " << to_string((static_cast<double>(contextSwitches) / static_cast<double>(NUM_PROCESSES))) << endl;
     cout << endl;
 }
 
