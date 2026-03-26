@@ -18,20 +18,31 @@ int main(){
     double scaling_factor_A;
     double scaling_factor_B;
 
-    cin >> average_arrival_rate >> average_service_rate >>
-           base_quantum >> scaling_factor_A >> scaling_factor_B;
+    bool runWithDefaultParameters = true;
 
+    if (runWithDefaultParameters){
+        average_arrival_rate = 12.0;
+        average_service_rate = 0.06;
+        base_quantum = 0.03;
+        scaling_factor_A = 100;
+        scaling_factor_B = 1;
+    }
+
+    else{
+        cin >> average_arrival_rate >> average_service_rate >>
+               base_quantum >> scaling_factor_A >> scaling_factor_B;
+    }
     
     Simulator(average_arrival_rate, average_service_rate, base_quantum, 
               scaling_factor_A, scaling_factor_B);
-
-
 
     return 0;
 }
 
 void Simulator(double avg_arr_rate, double avg_svc_time, double base_quant, double A, double B){
     
+    bool doDebugText = false;
+
     // Need to track:
     // - Average turnaround time (done)
     // - Average number of context switches
@@ -44,7 +55,7 @@ void Simulator(double avg_arr_rate, double avg_svc_time, double base_quant, doub
 
     Calculations calculator;
 
-    queue<Process> readyQueue; // Ready queue of processes
+    queue<Process*> readyQueue; // Ready queue of processes
     priority_queue<Event> eventQueue; // Queue of events
     CPU cpu; // CPU we will use
 
@@ -54,13 +65,13 @@ void Simulator(double avg_arr_rate, double avg_svc_time, double base_quant, doub
 
     
 
-    // 1. Generate a workload of 10,000 processes
-    const int NUM_PROCESSES = 3;
+    // Generate a workload of 10,000 processes
+    const int NUM_PROCESSES = 10000;
     int completedProcesses = 0;
     int contextSwitches = 0;
-    Process processes[NUM_PROCESSES];
 
-    double turnaroundTimes[NUM_PROCESSES];
+    vector<Process> processes(NUM_PROCESSES);
+    vector<double> turnaroundTimes(NUM_PROCESSES);
 
     double service_time, local_arrival_time;
     int priority;
@@ -82,40 +93,21 @@ void Simulator(double avg_arr_rate, double avg_svc_time, double base_quant, doub
         Event arrivalEvent = Event(process_arrival, &(processes[i]), generatedTime);
         eventQueue.push(arrivalEvent);
 
-        cout << "******************************" << endl;
-        cout << "Process generated!" << endl;
-        cout << "PID: " << processes[i].get_PID() << endl;
-        cout << "Svc time: " << processes[i].get_remaining_svc_time() << " seconds" << endl;
-        cout << "Arr time: " << processes[i].get_arr_time() << " seconds" << endl;
-        cout << "Static priority: " << processes[i].get_priority() << endl;
-        cout << "******************************" << endl << endl;;
+        if (doDebugText){
+            cout << "******************************" << endl;
+            cout << "Process generated!" << endl;
+            cout << "PID: " << processes[i].get_PID() << endl;
+            cout << "Svc time: " << processes[i].get_remaining_svc_time() << " seconds" << endl;
+            cout << "Arr time: " << processes[i].get_arr_time() << " seconds" << endl;
+            cout << "Static priority: " << processes[i].get_priority() << endl;
+            cout << "******************************" << endl << endl;
+        }
     }
-
-    // **********************************************************************
-    // CURRENT LOOP IDEA:
-    //
-    // Grab event
-    //
-    // Arrival:
-    // - If CPU is free, schedule service event for right now.
-    // - Else, add to readyQueue
-    // Departure: 
-    // - Set CPU to idle, "finish" process
-    // Service Arrival:
-    // - Set CPU to busy
-    // - Calculate and "execute" quantum on process
-    // - Schedule quantum_expiration process (which should happen 
-    //   directly after)
-    //   Quantum expiration:
-    // - Determine if process is finished or not.
-    //   - If so: create departure event
-    //   - If not: back into readyQueue
-    // - Scheudule service arrival of next process in ready queue
-    //
-    // **********************************************************************
 
     Process* currentProcess = nullptr;
     Process* previousProcess = nullptr;
+
+    cout << "> Running simulation..." << endl;
 
     // MAIN LOOP
     while (completedProcesses < NUM_PROCESSES){
@@ -125,13 +117,15 @@ void Simulator(double avg_arr_rate, double avg_svc_time, double base_quant, doub
         eventQueue.pop();
 
         currentProcess = eventToExecute.get_process();
-
         currentTime = eventToExecute.getTime();
 
-        cout << "****************************************" << endl;
-        cout << "Handling event: " << eventToExecute.get_eventType_as_string() <<
-                " for PID: " << to_string((*currentProcess).get_PID()) << endl; 
-        cout << endl;
+        if (doDebugText){
+            cout << "****************************************" << endl;
+            cout << "Handling event: " << eventToExecute.get_eventType_as_string() <<
+                    " for PID: " << to_string((*currentProcess).get_PID()) << endl; 
+            cout << endl;
+        }
+        
 
 
 
@@ -139,20 +133,20 @@ void Simulator(double avg_arr_rate, double avg_svc_time, double base_quant, doub
 
             // If CPU is free, schedule service event now.
             if (!cpu.isBusy()){
-                cout << "CPU is free, scheduling service event now..." << endl;
+                if (doDebugText) cout << "CPU is free, scheduling service event now..." << endl;
                 Event serviceEvent = Event(service_arrival, currentProcess, currentTime);
                 eventQueue.push(serviceEvent);
-                readyQueue.push(*currentProcess);
+                readyQueue.push(currentProcess);
             } else { // Else, add to readyQueue.
-                cout << "CPU is busy, adding process to ready queue..." << endl;
-                readyQueue.push(*currentProcess);
+                if (doDebugText) cout << "CPU is busy, adding process to ready queue..." << endl;
+                readyQueue.push(currentProcess);
             }
 
         } else if (eventToExecute.get_eventType() == process_departure){
 
             cpu.setIdle();
             completedProcesses++;
-            cout << "PID " << to_string((*currentProcess).get_PID()) << " has finished. Departing..." << endl;
+            if (doDebugText) cout << "PID " << to_string((*currentProcess).get_PID()) << " has finished. Departing..." << endl;
 
             // Get current process' turnaround time
             double currProcTurnaroundTime = currentTime - (*currentProcess).get_arr_time();
@@ -162,27 +156,27 @@ void Simulator(double avg_arr_rate, double avg_svc_time, double base_quant, doub
 
             // Determine if a context switch occurred
             if (previousProcess == nullptr) 
-                cout << "Loading first process for service. Not counting this as a context switch." << endl;
+                if (doDebugText) cout << "Loading first process for service. Not counting this as a context switch." << endl;
             if (previousProcess != nullptr && currentProcess != previousProcess){
                 contextSwitches++;
-                cout << "Context switch happened! From PID " << to_string((*previousProcess).get_PID()) << " to PID " << to_string((*currentProcess).get_PID()) << endl;
+                if (doDebugText) cout << "Context switch happened! From PID " << to_string((*previousProcess).get_PID()) << " to PID " << to_string((*currentProcess).get_PID()) << endl;
             }
 
             // Take process out of readyQueue
-            if ((*currentProcess).get_PID() != (readyQueue.front()).get_PID()){
+            if (currentProcess != readyQueue.front()){
                 cout << "Error! Current process is not at front of readyQueue!" << endl;
             } else {
-                cout << "CurrentProcess is at the front of readyQueue. Good!" << endl;
+                if (doDebugText) cout << "CurrentProcess is at the front of readyQueue. Good!" << endl;
                 readyQueue.pop();
             }
 
-            cout << "PID " << to_string((*currentProcess).get_PID()) << " has arrived for service. Servicing..." << endl;
+            if (doDebugText) cout << "PID " << to_string((*currentProcess).get_PID()) << " has arrived for service. Servicing..." << endl;
 
             cpu.setBusy();
             
             // Calculate quantum and do execution
             double quantum = calculator.calculate_quantum(base_quant, A, B, currentProcess);
-            cout << "Assigning quantum of " << to_string(quantum) << " seconds" << endl;
+            if (doDebugText) cout << "Assigning quantum of " << to_string(quantum) << " seconds" << endl;
             double init_remaining_svc_time = (*currentProcess).get_remaining_svc_time();
             (*currentProcess).do_execution(quantum);
             
@@ -192,7 +186,7 @@ void Simulator(double avg_arr_rate, double avg_svc_time, double base_quant, doub
                 busyTime += quantum;
 
             // Schedule quantum_expiration event
-            cout << "Scheduling quantum expiration event..." << endl;
+            if (doDebugText) cout << "Scheduling quantum expiration event..." << endl;
             Event quantumExpEvent = Event(quantum_expiration, currentProcess, currentTime + quantum);
             eventQueue.push(quantumExpEvent);
 
@@ -200,15 +194,17 @@ void Simulator(double avg_arr_rate, double avg_svc_time, double base_quant, doub
 
         } else if (eventToExecute.get_eventType() == quantum_expiration){
 
-            cout << "PID " << to_string((*currentProcess).get_PID()) << "'s quantum has finished." << endl;
-            cout << "Remaining service time: " << to_string((*currentProcess).get_remaining_svc_time()) << " seconds" << endl;
+            if (doDebugText) {
+                cout << "PID " << to_string((*currentProcess).get_PID()) << "'s quantum has finished." << endl;
+                cout << "Remaining service time: " << to_string((*currentProcess).get_remaining_svc_time()) << " seconds" << endl;
+            }
 
             // Figure out if process needs more work or is done.
             if ((*currentProcess).get_remaining_svc_time() > 0.0){
-                cout << "Putting process back in ready queue..." << endl;
-                readyQueue.push(*currentProcess);
+                if (doDebugText) cout << "Putting process back in ready queue..." << endl;
+                readyQueue.push(currentProcess);
             } else {
-                cout << "Creating departure event..." << endl;
+                if (doDebugText) cout << "Creating departure event..." << endl;
                 Event departureEvent = Event(process_departure, currentProcess, currentTime);
                 eventQueue.push(departureEvent);
             }
@@ -217,8 +213,8 @@ void Simulator(double avg_arr_rate, double avg_svc_time, double base_quant, doub
 
             // Schedule service arrival of next process in readyQueue if there is one
             if (!readyQueue.empty()){
-                Process* nextProcess = &(readyQueue.front());
-                cout << "Scheduling service arrival of next process (PID " << to_string((*nextProcess).get_PID()) << ") in ready queue..." << endl;
+                Process* nextProcess = readyQueue.front();
+                if (doDebugText) cout << "Scheduling service arrival of next process (PID " << to_string((*nextProcess).get_PID()) << ") in ready queue..." << endl;
                 Event nextProcessServiceArrival = Event(service_arrival, nextProcess, currentTime);
                 eventQueue.push(nextProcessServiceArrival);
             }
@@ -230,8 +226,10 @@ void Simulator(double avg_arr_rate, double avg_svc_time, double base_quant, doub
             cout << "******************************\n" << endl;;
         }
 
-        cout << endl;
-        cout << "Event handling finished!" << endl << endl;
+        if (doDebugText) {
+            cout << endl;
+            cout << "Event handling finished!" << endl << endl;
+        }
 
     }
 
@@ -245,6 +243,7 @@ void Simulator(double avg_arr_rate, double avg_svc_time, double base_quant, doub
     cout << "**************************************************" << endl;
     cout << "> Simulator has finished running." << endl;
     cout << "> RESULTS: " << endl;
+    cout << "> Completed processes: " << to_string(completedProcesses) << "/" << to_string(NUM_PROCESSES) << endl;
     cout << "> Average turnaround time: " << to_string(avgTurnaroundTime) << " seconds" << endl;
     cout << "> Total number of context switches: " << to_string(contextSwitches) << endl;
     cout << "> Average number of context switches per process: " << to_string((static_cast<double>(contextSwitches) / static_cast<double>(NUM_PROCESSES))) << endl;

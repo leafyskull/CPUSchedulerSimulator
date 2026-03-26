@@ -8,7 +8,7 @@ CXXFLAGS = -Wall -std=c++17
 TARGET = program
 
 # Source files
-SRCS = Calculations.cpp CPU.cpp Event.cpp Process.cpp ProgramV2.cpp
+SRCS = Calculations.cpp CPU.cpp Event.cpp Process.cpp Simulator.cpp
 
 # Object files (automatically generated from SRCS)
 OBJS = $(SRCS:.cpp=.o)
