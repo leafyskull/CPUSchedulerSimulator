@@ -1,9 +1,11 @@
 #include "Event.h"
+#include <string>
+using namespace std;
 
 
 // Overload of < operator for keeping priority queue in order
-bool operator<(Event& lhs, Event& rhs){
-    return (lhs.getTime() < rhs.getTime());
+bool Event::operator<(const Event& other) const{
+    return (this->time > other.getTime());
 }
 
 
@@ -30,10 +32,35 @@ EventType Event::get_eventType(){
     return this->eventType;
 }
 
+string Event::get_eventType_as_string(){
+    int enumIndex = this->eventType;
+    string enumAsString;
+
+    switch (enumIndex){
+        case 0: // INVALID
+            enumAsString = "INVALID";
+            break;
+        case 1:
+            enumAsString = "Process arrival";
+            break;
+        case 2:
+            enumAsString = "Process departure";
+            break;
+        case 3:
+            enumAsString = "Service arrival";
+            break;
+        case 4:
+            enumAsString = "Quantum expiration";
+            break;
+    }
+
+    return enumAsString;
+}
+
 Process* Event::get_process(){
     return this->process;
 }
 
-double Event::getTime(){
+double Event::getTime() const{
     return this->time;
 }

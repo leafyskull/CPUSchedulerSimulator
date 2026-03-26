@@ -40,6 +40,9 @@ void Simulator(double avg_arr_rate, double avg_svc_rate, double base_quant, doub
     // - Average number of processes in the ready queue
     //   ?
 
+    cout << "*************************" << endl;
+    cout << "Simulator starting..." << endl << endl;
+    cout << "*************************" << endl;
 
     Calculations calculator;
 
@@ -54,7 +57,7 @@ void Simulator(double avg_arr_rate, double avg_svc_rate, double base_quant, doub
     
 
     // 1. Generate a workload of 10,000 processes
-    const int NUM_PROCESSES = 10; // 10 for testing
+    const int NUM_PROCESSES = 3;
     int completedProcesses = 0;
     Process processes[NUM_PROCESSES];
 
@@ -120,14 +123,9 @@ void Simulator(double avg_arr_rate, double avg_svc_rate, double base_quant, doub
 
         currentTime = eventToExecute.getTime();
 
-
-        // May now be redundant:
-        //
-        // // If we have idle time until the next process' arrival - fast forward to arrival
-        // if (!cpu.isBusy() && currentTime < (*currentProcess).get_arr_time() 
-        //     && eventToExecute.get_eventType() == process_arrival){
-        //     currentTime = (*currentProcess).get_arr_time();
-        // }
+        cout << "Handling event: " << eventToExecute.get_eventType_as_string() << endl;
+        cout << "Related process: " << to_string((*currentProcess).get_PID()) << endl; 
+        cout << endl;
 
 
 
@@ -136,6 +134,8 @@ void Simulator(double avg_arr_rate, double avg_svc_rate, double base_quant, doub
             // If CPU is free, schedule service event now.
             if (!cpu.isBusy()){
                 Event serviceEvent = Event(service_arrival, currentProcess, currentTime);
+                eventQueue.push(serviceEvent);
+                readyQueue.push(*currentProcess);
             } else { // Else, add to readyQueue.
                 readyQueue.push(*currentProcess);
             }
@@ -144,19 +144,35 @@ void Simulator(double avg_arr_rate, double avg_svc_rate, double base_quant, doub
 
             cpu.setIdle();
             completedProcesses++;
+            cout << "PID " << to_string((*currentProcess).get_PID()) << " has finished. Departing..." << endl;
 
         } else if (eventToExecute.get_eventType() == service_arrival){
+
+            // TEST
+            if ((*currentProcess).get_PID() != (readyQueue.front()).get_PID()){
+                cout << "Error! Current process is not at front of readyQueue!" << endl;
+            } else {
+                cout << "CurrentProcess is at the front of readyQueue. Good!" << endl;
+                readyQueue.pop();
+            }
+
+            cout << "PID " << to_string((*currentProcess).get_PID()) << " has arrived for service. Servicing..." << endl;
 
             cpu.setBusy();
             
             // Calculate quantum and do execution
             double quantum = calculator.calculate_quantum(base_quant, A, B, currentProcess);
-            currentProcess->do_execution(quantum);
+            cout << "Assigning quantum of " << to_string(quantum) << endl;
+            (*currentProcess).do_execution(quantum);
 
             // Schedule quantum_expiration event
             Event quantumExpEvent = Event(quantum_expiration, currentProcess, currentTime + quantum);
+            eventQueue.push(quantumExpEvent);
 
         } else if (eventToExecute.get_eventType() == quantum_expiration){
+
+            cout << "PID " << to_string((*currentProcess).get_PID()) << "'s quantum has finished." << endl;
+            cout << "Remaining service time: " << to_string((*currentProcess).get_remaining_svc_time()) << endl;
 
             // Figure out if process needs more work or is done.
             if ((*currentProcess).get_remaining_svc_time() > 0.0){
@@ -168,22 +184,42 @@ void Simulator(double avg_arr_rate, double avg_svc_rate, double base_quant, doub
 
             cpu.setIdle();
 
-            // Schedule service arrival of next process in readyQueue
-            Process* nextProcess = &(readyQueue.front());
-            Event nextProcessServiceArrival = Event(service_arrival, nextProcess, currentTime);
+            // Schedule service arrival of next process in readyQueue if there is one
+            if (!readyQueue.empty()){
+                Process* nextProcess = &(readyQueue.front());
+                Event nextProcessServiceArrival = Event(service_arrival, nextProcess, currentTime);
+                eventQueue.push(nextProcessServiceArrival);
+            }
 
         } else { // ERROR: Invalid event type
             cout << "\n******************************" << endl;;
             cout << "ERROR: Invalid event type!" << endl;;
-            cout << "Event type: " << eventToExecute.get_eventType() << endl;
+            cout << "Event type: " << eventToExecute.get_eventType_as_string() << endl;
             cout << "******************************\n" << endl;;
         }
 
-
+        cout << endl << endl;
 
     }
     
+    cout << endl << endl << endl;
+    
+    // cout << "Ensuring all processes are completed..." << endl;
+    // bool completionError = false;
+    // for (int i = 0; i < NUM_PROCESSES; i++){
+    //     if (processes[i].get_remaining_svc_time() != 0.0){
+    //         completionError = true;
+    //         cout << "ERROR! PID " << to_string(processes[i].get_PID()) << "'s service is incomplete!"<< endl;
+    //         cout << "Remaining service time: " << to_string(processes[i].get_remaining_svc_time()) << endl;
+    //     }
+    // }
+    // if (!completionError){
+    //     cout << "All processes' service complete!" << endl;
+    // }
+    // cout << endl << endl << endl;
 
-
+    cout << "**************************************************" << endl;
+    cout << "Simulator has finished running. Exiting..." << endl;
+    cout << "**************************************************" << endl;
 }
 

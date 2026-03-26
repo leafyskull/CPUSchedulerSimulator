@@ -34,7 +34,7 @@ double Calculations::calculate_quantum(double base_quantum, double A, double B, 
 
     double return_quantum = base_quantum + ((10.0 - (*proc).get_priority()) / A) - (B * (*proc).get_total_execution_time());
 
-    if (return_quantum < 0) return_quantum = 0.01;
+    if (return_quantum < 0.01) return_quantum = 0.01;
 
     return return_quantum;
 };
