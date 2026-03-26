@@ -8,7 +8,7 @@
 #include "Calculations.h"
 using namespace std;
 
-void Simulator(double avg_arr_rate, double avg_svc_rate, double base_quant, double A, double B);
+void Simulator(double avg_arr_rate, double avg_svc_time, double base_quant, double A, double B);
 
 int main(){
 
@@ -30,7 +30,7 @@ int main(){
     return 0;
 }
 
-void Simulator(double avg_arr_rate, double avg_svc_rate, double base_quant, double A, double B){
+void Simulator(double avg_arr_rate, double avg_svc_time, double base_quant, double A, double B){
     
     // Need to track:
     // - Average turnaround time
@@ -40,9 +40,8 @@ void Simulator(double avg_arr_rate, double avg_svc_rate, double base_quant, doub
     // - Average number of processes in the ready queue
     //   ?
 
-    cout << "*************************" << endl;
-    cout << "Simulator starting..." << endl << endl;
-    cout << "*************************" << endl;
+    cout << endl;
+    cout << "> Simulator starting..." << endl;
 
     Calculations calculator;
 
@@ -60,13 +59,15 @@ void Simulator(double avg_arr_rate, double avg_svc_rate, double base_quant, doub
     const int NUM_PROCESSES = 3;
     int completedProcesses = 0;
     Process processes[NUM_PROCESSES];
+    double turnaroundTimes[NUM_PROCESSES];
 
     double service_time, local_arrival_time;
     int priority;
 
-    cout << "*** Generating processes ***" << endl;
+    cout << "> Generating processes..." << endl << endl;
+
     for (int i = 0; i < NUM_PROCESSES; i++){
-        service_time = calculator.calculate_service_time(avg_svc_rate);
+        service_time = calculator.calculate_service_time(avg_svc_time);
         local_arrival_time = calculator.calculate_arrival_time(avg_arr_rate);
         priority = calculator.get_random_static_priority();
 
@@ -83,8 +84,8 @@ void Simulator(double avg_arr_rate, double avg_svc_rate, double base_quant, doub
         cout << "******************************" << endl;
         cout << "Process generated!" << endl;
         cout << "PID: " << processes[i].get_PID() << endl;
-        cout << "Svc time: " << processes[i].get_remaining_svc_time() << endl;
-        cout << "Arr time: " << processes[i].get_arr_time() << endl;
+        cout << "Svc time: " << processes[i].get_remaining_svc_time() << " seconds" << endl;
+        cout << "Arr time: " << processes[i].get_arr_time() << " seconds" << endl;
         cout << "Static priority: " << processes[i].get_priority() << endl;
         cout << "******************************" << endl << endl;;
     }
@@ -123,8 +124,9 @@ void Simulator(double avg_arr_rate, double avg_svc_rate, double base_quant, doub
 
         currentTime = eventToExecute.getTime();
 
-        cout << "Handling event: " << eventToExecute.get_eventType_as_string() << endl;
-        cout << "Related process: " << to_string((*currentProcess).get_PID()) << endl; 
+        cout << "****************************************" << endl;
+        cout << "Handling event: " << eventToExecute.get_eventType_as_string() <<
+                " for PID: " << to_string((*currentProcess).get_PID()) << endl; 
         cout << endl;
 
 
@@ -133,10 +135,12 @@ void Simulator(double avg_arr_rate, double avg_svc_rate, double base_quant, doub
 
             // If CPU is free, schedule service event now.
             if (!cpu.isBusy()){
+                cout << "CPU is free, scheduling service event now..." << endl;
                 Event serviceEvent = Event(service_arrival, currentProcess, currentTime);
                 eventQueue.push(serviceEvent);
                 readyQueue.push(*currentProcess);
             } else { // Else, add to readyQueue.
+                cout << "CPU is busy, adding process to ready queue..." << endl;
                 readyQueue.push(*currentProcess);
             }
 
@@ -145,6 +149,10 @@ void Simulator(double avg_arr_rate, double avg_svc_rate, double base_quant, doub
             cpu.setIdle();
             completedProcesses++;
             cout << "PID " << to_string((*currentProcess).get_PID()) << " has finished. Departing..." << endl;
+
+            // Get current process' turnaround time
+            double currProcTurnaroundTime = currentTime - (*currentProcess).get_arr_time();
+            turnaroundTimes[(*currentProcess).get_PID()] = currProcTurnaroundTime;
 
         } else if (eventToExecute.get_eventType() == service_arrival){
 
@@ -162,22 +170,31 @@ void Simulator(double avg_arr_rate, double avg_svc_rate, double base_quant, doub
             
             // Calculate quantum and do execution
             double quantum = calculator.calculate_quantum(base_quant, A, B, currentProcess);
-            cout << "Assigning quantum of " << to_string(quantum) << endl;
+            cout << "Assigning quantum of " << to_string(quantum) << " seconds" << endl;
+            double init_remaining_svc_time = (*currentProcess).get_remaining_svc_time();
             (*currentProcess).do_execution(quantum);
+            
+            if (init_remaining_svc_time < quantum)
+                busyTime += init_remaining_svc_time;
+            else
+                busyTime += quantum;
 
             // Schedule quantum_expiration event
+            cout << "Scheduling quantum expiration event..." << endl;
             Event quantumExpEvent = Event(quantum_expiration, currentProcess, currentTime + quantum);
             eventQueue.push(quantumExpEvent);
 
         } else if (eventToExecute.get_eventType() == quantum_expiration){
 
             cout << "PID " << to_string((*currentProcess).get_PID()) << "'s quantum has finished." << endl;
-            cout << "Remaining service time: " << to_string((*currentProcess).get_remaining_svc_time()) << endl;
+            cout << "Remaining service time: " << to_string((*currentProcess).get_remaining_svc_time()) << " seconds" << endl;
 
             // Figure out if process needs more work or is done.
             if ((*currentProcess).get_remaining_svc_time() > 0.0){
+                cout << "Putting process back in ready queue..." << endl;
                 readyQueue.push(*currentProcess);
             } else {
+                cout << "Creating departure event..." << endl;
                 Event departureEvent = Event(process_departure, currentProcess, currentTime);
                 eventQueue.push(departureEvent);
             }
@@ -187,6 +204,7 @@ void Simulator(double avg_arr_rate, double avg_svc_rate, double base_quant, doub
             // Schedule service arrival of next process in readyQueue if there is one
             if (!readyQueue.empty()){
                 Process* nextProcess = &(readyQueue.front());
+                cout << "Scheduling service arrival of next process (PID " << to_string((*nextProcess).get_PID()) << ") in ready queue..." << endl;
                 Event nextProcessServiceArrival = Event(service_arrival, nextProcess, currentTime);
                 eventQueue.push(nextProcessServiceArrival);
             }
@@ -198,28 +216,19 @@ void Simulator(double avg_arr_rate, double avg_svc_rate, double base_quant, doub
             cout << "******************************\n" << endl;;
         }
 
-        cout << endl << endl;
+        cout << "****************************************" << endl << endl;
 
     }
-    
-    cout << endl << endl << endl;
-    
-    // cout << "Ensuring all processes are completed..." << endl;
-    // bool completionError = false;
-    // for (int i = 0; i < NUM_PROCESSES; i++){
-    //     if (processes[i].get_remaining_svc_time() != 0.0){
-    //         completionError = true;
-    //         cout << "ERROR! PID " << to_string(processes[i].get_PID()) << "'s service is incomplete!"<< endl;
-    //         cout << "Remaining service time: " << to_string(processes[i].get_remaining_svc_time()) << endl;
-    //     }
-    // }
-    // if (!completionError){
-    //     cout << "All processes' service complete!" << endl;
-    // }
-    // cout << endl << endl << endl;
 
-    cout << "**************************************************" << endl;
-    cout << "Simulator has finished running. Exiting..." << endl;
-    cout << "**************************************************" << endl;
+    // Calculate average turnaround time
+    double sum = 0.0;
+    for (int i = 0; i < NUM_PROCESSES; i++){
+        sum += turnaroundTimes[i];
+    }
+    double avgTurnaroundTime = sum / NUM_PROCESSES;
+
+    cout << "> Simulator has finished running." << endl;
+    cout << "Average turnaround time: " << to_string(avgTurnaroundTime) << " seconds" << endl;
+    cout << endl;
 }
 
