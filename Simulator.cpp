@@ -50,6 +50,10 @@ void Simulator(double avg_arr_rate, double avg_svc_time, double base_quant, doub
     // - Average number of processes in the ready queue
     //   ?
 
+    // Idea for the ready queue average tracking:
+    // Each time we context switch, take (time since last * ready Queue size) and add to sum
+    // At end, divide sum by total time
+
     cout << endl;
     cout << "> Simulator starting..." << endl;
 
@@ -62,6 +66,13 @@ void Simulator(double avg_arr_rate, double avg_svc_time, double base_quant, doub
     double currentTime = 0.0; // Total time clock
     double busyTime = 0.0; // Total time CPU spent executing
     double generatedTime = 0.0; // For generating the process arrival times
+
+    // For calculating average readyQueue size:
+    // At each service, multiply (currentTime - previousTime) * readyQueue.size()
+    // and add to serviceTimeByReadyQueueSizeSum.
+    // At the end of the simulation, we'll divide this by the total elapsed time.
+    double previousServiceTime = 0.0;
+    double serviceTimeByReadyQueueSizeSum = 0.0;
 
     
 
@@ -154,6 +165,9 @@ void Simulator(double avg_arr_rate, double avg_svc_time, double base_quant, doub
 
         } else if (eventToExecute.get_eventType() == service_arrival){
 
+            serviceTimeByReadyQueueSizeSum += (currentTime - previousServiceTime) * readyQueue.size();
+            previousServiceTime = currentTime;
+
             // Determine if a context switch occurred
             if (previousProcess == nullptr) 
                 if (doDebugText) cout << "Loading first process for service. Not counting this as a context switch." << endl;
@@ -240,13 +254,16 @@ void Simulator(double avg_arr_rate, double avg_svc_time, double base_quant, doub
     }
     double avgTurnaroundTime = sum / NUM_PROCESSES;
 
+    // Calculate average number of processes in the readyQueue
+    double avgNumProcessesInReadyQueue = serviceTimeByReadyQueueSizeSum / currentTime;
+
     cout << "**************************************************" << endl;
     cout << "> Simulator has finished running." << endl;
     cout << "> RESULTS: " << endl;
     cout << "> Completed processes: " << to_string(completedProcesses) << "/" << to_string(NUM_PROCESSES) << endl;
     cout << "> Average turnaround time: " << to_string(avgTurnaroundTime) << " seconds" << endl;
-    cout << "> Total number of context switches: " << to_string(contextSwitches) << endl;
     cout << "> Average number of context switches per process: " << to_string((static_cast<double>(contextSwitches) / static_cast<double>(NUM_PROCESSES))) << endl;
+    cout << "Average number of processes in the readyQueue: " << to_string(avgNumProcessesInReadyQueue) << endl;
     cout << endl;
 }
 
