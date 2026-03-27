@@ -1,6 +1,3 @@
-
-
-- What to report: <br>
 1. "What values of base and scaling factors provided a good tradeoffs of the above performance metrics." <br>
 
 My first thoughts on the scaling of our scaling factors: <br>
