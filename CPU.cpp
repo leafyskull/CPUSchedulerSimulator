@@ -1,5 +1,6 @@
 #include "CPU.h"
 #include "Process.h"
+#include <queue>
 
 
 CPU::CPU(){

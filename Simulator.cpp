@@ -6,6 +6,7 @@
 #include "Calculations.h"
 #include "CPU.h"
 #include "Calculations.h"
+#include <iomanip>
 using namespace std;
 
 void Simulator(double avg_arr_rate, double avg_svc_time, double base_quant, double A, double B);
@@ -51,25 +52,22 @@ void Simulator(double avg_arr_rate, double avg_svc_time, double base_quant, doub
     cout << "> Simulator starting..." << endl;
 
     Calculations calculator;
+    CPU cpu;
 
-    // TODO: Replace with CPU's readyQueue
-    // queue<Process*> readyQueue; // Ready queue of processes
-    
-    priority_queue<Event> eventQueue; // Queue of events
-    CPU cpu; // CPU we will use
+    priority_queue<Event> eventQueue;
 
     double currentTime = 0.0; // Total time clock
     double busyTime = 0.0; // Total time CPU spent executing
     double generatedTime = 0.0; // For generating the process arrival times
 
     // For calculating average readyQueue size:
-    // At each service, multiply (currentTime - previousTime) * readyQueue.size()
+    // At each service, multiply (currentTime - previousTime) * cpu.readyQueueSize()
     // and add to serviceTimeByReadyQueueSizeSum.
     // At the end of the simulation, we'll divide this by the total elapsed time.
     double previousServiceTime = 0.0;
     double serviceTimeByReadyQueueSizeSum = 0.0;
 
-    
+
 
     // Generate a workload of 10,000 processes
     const int NUM_PROCESSES = 10000;
@@ -78,6 +76,10 @@ void Simulator(double avg_arr_rate, double avg_svc_time, double base_quant, doub
 
     vector<Process> processes(NUM_PROCESSES);
     vector<double> turnaroundTimes(NUM_PROCESSES);
+
+    // This will be used to create the graph between priority
+    // and turnaround times for the report.
+    vector<pair<double, int>> turnaroundTimesPairedWithPriority;
 
     double service_time, local_arrival_time;
     int priority;
@@ -157,6 +159,7 @@ void Simulator(double avg_arr_rate, double avg_svc_time, double base_quant, doub
             // Get current process' turnaround time
             double currProcTurnaroundTime = currentTime - (*currentProcess).get_arr_time();
             turnaroundTimes[(*currentProcess).get_PID()] = currProcTurnaroundTime;
+            turnaroundTimesPairedWithPriority.push_back(make_pair(currProcTurnaroundTime, (*currentProcess).get_priority()));
 
         } else if (eventToExecute.get_eventType() == service_arrival){
 
@@ -247,7 +250,28 @@ void Simulator(double avg_arr_rate, double avg_svc_time, double base_quant, doub
     for (int i = 0; i < NUM_PROCESSES; i++){
         sum += turnaroundTimes[i];
     }
-    double avgTurnaroundTime = sum / NUM_PROCESSES;
+    double avgTurnaroundTime = sum / static_cast<double>(NUM_PROCESSES);
+
+    // Calculate average turnaround time for each priority
+    const int NUM_PRIORITIES = 10;
+    double prioritySums[NUM_PRIORITIES];
+    double priorityAverages[NUM_PRIORITIES];
+    double numProcessesWithEachPriority[NUM_PRIORITIES];
+
+    for (int i = 0; i < NUM_PRIORITIES; i++){
+        prioritySums[i] = 0;
+        priorityAverages[i] = 0;
+        numProcessesWithEachPriority[i] = 0;
+    }
+
+    for (size_t i = 0; i < turnaroundTimesPairedWithPriority.size(); i++){
+        prioritySums[turnaroundTimesPairedWithPriority[i].second - 1] += turnaroundTimesPairedWithPriority[i].first;
+        numProcessesWithEachPriority[turnaroundTimesPairedWithPriority[i].second - 1]++;
+    }
+
+    for (int i = 0; i < NUM_PRIORITIES; i++){
+        priorityAverages[i] = (prioritySums[i]) / (numProcessesWithEachPriority[i]);
+    }
 
     // Calculate average number of processes in the readyQueue
     double avgNumProcessesInReadyQueue = serviceTimeByReadyQueueSizeSum / currentTime;
@@ -261,5 +285,18 @@ void Simulator(double avg_arr_rate, double avg_svc_time, double base_quant, doub
     cout << "> Average number of processes in the readyQueue: " << to_string(avgNumProcessesInReadyQueue) << endl;
     cout << "************************************************************" << endl;
     cout << endl;
+
+    cout << "************************************************************" << endl;
+    cout << "> Average turnaround times per priority: " << endl;
+    cout << left 
+         << setw(15) << "[PRIORITY]" 
+         << setw(15) << "[Avg. Turnaround Time (sec)]" 
+         << endl;
+    for (int i = 0; i < NUM_PRIORITIES; i++){
+        cout << setw(15) << to_string(i + 1) 
+             << setw(15) << to_string(priorityAverages[i]) 
+             << endl;
+    }
+    cout << "************************************************************" << endl;
 }
 
