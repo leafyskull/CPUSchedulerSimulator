@@ -13,7 +13,7 @@ My first thoughts on the scaling of our scaling factors: <br>
 
 My hypothesis is that we probably want A and B to not differ too much, nor be too large in scale. I'll try some single-digit, similar values for the two of them and see. <br>
 
-First, I made A and B the same value, and tried values 1 - 10. Here are some results: <br>
+First, I made A and B the same value, and tried values 1 - 10. I set the base quantum to be 0.03 seconds. Here are some results: <br>
 
 > A, B = 1: <br>
 Average turnaround time: 23603.361710 seconds <br>
@@ -66,6 +66,36 @@ Average number of context switches per process: 1.510700 <br>
 Average number of processes in the readyQueue: 4480.717564 <br>
 
 Ok so far, we seem to be benefitting by increasing these parameters. <br>
+
+Next I decided to resume having A and B the same, but increasing them by multiples of 5 from 5-50. I'll save the space from writing it all out, but we saw similar continuous improvements as A and B scaled upward. I did the same, but this time going from 5-250, and saw the same thing. In general, raising these values dereased the average turnaround time, number of context switches, and number of processes in the ready queue. <br>
+
+> A, B = 250.000000 <br>
+Average turnaround time: 35.234546 seconds <br>
+Average number of context switches per process: 3.074500 <br>
+Average number of processes in the readyQueue: 395.291298 <br>
+
+Still not favorable results. I decided to now differ the A and B value, as well as play around with different base quantums. I did this for a while, and I found a really good result by using a high A value, low B value, and smaller base quantum than I'd initially thought to use. <br>
+
+> Base quantum = 0.020000 <br>
+A = 600.000000 <br>
+B = 0.100000 <br>
+Average turnaround time: 0.439043 seconds <br>
+Average number of context switches per process: 3.129000 <br>
+Average number of processes in the readyQueue: 5.236419 <br>
+************************************************************ <br>
+Average turnaround times per priority: <br>
+[PRIORITY]     [Avg. Turnaround Time (sec)] <br>
+1              0.381259        <br>
+2              0.396865        <br>
+3              0.351937        <br>
+4              0.373712        <br>
+5              0.446831        <br>
+6              0.442696        <br>
+7              0.508062        <br>
+8              0.495764        <br>
+9              0.461886        <br>
+10             0.540848        <br>
+************************************************************ <br>
 
 
 2. "Are there any starvation concerns? How would you tackle them." <br>
