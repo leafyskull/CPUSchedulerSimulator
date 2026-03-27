@@ -100,24 +100,24 @@ Average turnaround times per priority: <br>
 
 ************************************************************ <br>
 
-This was the best result I was able to get, so I'm going to stick by it. I think a high A value works well because we're scaling the division of the numerator (which will be a single digit integer) down to a relative size of our average service time, so the quantum isn't so large that we're trying to do the whole process at once. A low B works because we're establishing a penalty for long execution times, without making it either too punishing or ineffective. From my prior research it was my hypothesis that a base quantum either slightly smaller or larger than the average service time would work best, but I was proven wrong - a base quantum of a third the size of the average service time turned out to be superior.
+This was the best result I was able to get, so I'm going to stick by it. I think a high A value works well because we're scaling the division of the numerator (which will be a single digit integer) down to a relative size of our average service time, so the quantum isn't so large that we're trying to do the whole process at once. A low B works because we're establishing a penalty for long execution times, without making it either too punishing or ineffective. From my prior research it was my hypothesis that a base quantum either slightly smaller or larger than the average service time would work best, but I was proven wrong - a base quantum of a third the size of the average service time turned out to be superior. <br>
 
 
 2. "Are there any starvation concerns? How would you tackle them." <br>
-The only starvation concern was addressed early on in the project, when implementing the quantum calculation. A quantum either being ridiculously high or near zero/negative could potentially cause starvation or very long turnaround times. We can avoid making it too high by our prior selection of optimal base quantum, A, and B parameters, and I kept it from going near-zero by implementing a minimum quantum of 0.01 second.
+The only starvation concern was addressed early on in the project, when implementing the quantum calculation. A quantum either being ridiculously high or near zero/negative could potentially cause starvation or very long turnaround times. We can avoid making it too high by our prior selection of optimal base quantum, A, and B parameters, and I kept it from going near-zero by implementing a minimum quantum of 0.01 second. <br>
 
 
 3. "Show a graph between priority and turnaround time." <br>
-Using the above listed table, here is a graph generated from those findings.
+Using the above listed table, here is a graph generated from those findings. <br>
 ![alt text](image.png)
 
-This is interesting - there's certainly a linear correlation where "more important" priorities have a lower average, but it's a bit rocky. I suppose that has to do with the small overall timescale, as the correlation was much "smoother" when I had much worse times before figuring out optimal base quantum, A, and B parameters.
+This is interesting - there's certainly a linear correlation where "more important" priorities have a lower average, but it's a bit rocky. I suppose that has to do with the small overall timescale, as the correlation was much "smoother" when I had much worse times before figuring out optimal base quantum, A, and B parameters. <br>
 
 
 4. "Based on your recommended values, how this scheduler compares to a vanilla RR with the base
    quantum." <br>
 
-We can simulate a vanilla RR by setting the A parameter very high, and the B parameter to zero. I did so, and here were my findings:
+We can simulate a vanilla RR by setting the A parameter very high, and the B parameter to zero. I did so, and here were my findings: <br>
 
 > Base quantum = 0.020000 <br>
 A = 600.000000 <br>
