@@ -26,7 +26,7 @@ int main(){
         average_service_rate = 0.06;
         base_quantum = 0.02;
         scaling_factor_A = 600;
-        scaling_factor_B = 0.1;
+        scaling_factor_B = 0;
     }
     else{
         cout << "Please input parameters in the following format: " << endl;
