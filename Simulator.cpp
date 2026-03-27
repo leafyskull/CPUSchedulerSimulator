@@ -24,11 +24,10 @@ int main(){
     if (runWithDefaultParameters){
         average_arrival_rate = 12.0;
         average_service_rate = 0.06;
-        base_quantum = 0.03;
-        scaling_factor_A = 100;
-        scaling_factor_B = 1;
+        base_quantum = 0.05;
+        scaling_factor_A = 0;
+        scaling_factor_B = 0;
     }
-
     else{
         cout << "Please input parameters in the following format: " << endl;
         cout << "[Avg arrival rate] [avg service time] [base quantum] [scaling factor A] [scaling factor B]" << endl;
@@ -37,9 +36,25 @@ int main(){
         cin >> average_arrival_rate >> average_service_rate >>
                base_quantum >> scaling_factor_A >> scaling_factor_B;
     }
+
+    int numRuns = 10;
+    for (int i = 0; i < numRuns; i++){
+        scaling_factor_A += 5;
+        scaling_factor_B += 5;
+
+        cout << endl;
+        cout << "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~" << endl;
+        cout << "Running with the following parameters:" << endl;
+        cout << "Base quantum: " << to_string(base_quantum) << " seconds" << endl;
+        cout << "Scaling factor A: " << to_string(scaling_factor_A) << endl;
+        cout << "Scaling factor B: " << to_string(scaling_factor_B) << endl;
+        Simulator(average_arrival_rate, average_service_rate, base_quantum, scaling_factor_A, scaling_factor_B);
+        
+    }
     
-    Simulator(average_arrival_rate, average_service_rate, base_quantum, 
-              scaling_factor_A, scaling_factor_B);
+    
+    // Simulator(average_arrival_rate, average_service_rate, base_quantum, 
+    //           scaling_factor_A, scaling_factor_B);
 
     return 0;
 }
@@ -286,17 +301,17 @@ void Simulator(double avg_arr_rate, double avg_svc_time, double base_quant, doub
     cout << "************************************************************" << endl;
     cout << endl;
 
-    cout << "************************************************************" << endl;
-    cout << "> Average turnaround times per priority: " << endl;
-    cout << left 
-         << setw(15) << "[PRIORITY]" 
-         << setw(15) << "[Avg. Turnaround Time (sec)]" 
-         << endl;
-    for (int i = 0; i < NUM_PRIORITIES; i++){
-        cout << setw(15) << to_string(i + 1) 
-             << setw(15) << to_string(priorityAverages[i]) 
-             << endl;
-    }
-    cout << "************************************************************" << endl;
+    // cout << "************************************************************" << endl;
+    // cout << "> Average turnaround times per priority: " << endl;
+    // cout << left 
+    //      << setw(15) << "[PRIORITY]" 
+    //      << setw(15) << "[Avg. Turnaround Time (sec)]" 
+    //      << endl;
+    // for (int i = 0; i < NUM_PRIORITIES; i++){
+    //     cout << setw(15) << to_string(i + 1) 
+    //          << setw(15) << to_string(priorityAverages[i]) 
+    //          << endl;
+    // }
+    // cout << "************************************************************" << endl;
 }
 
