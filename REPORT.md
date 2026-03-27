@@ -84,7 +84,8 @@ Average number of context switches per process: 3.129000 <br>
 Average number of processes in the readyQueue: 5.236419 <br>
 ************************************************************ <br>
 Average turnaround times per priority: <br>
-|[PRIORITY]    |[Avg. Turnaround Time (sec)]|
+
+|PRIORITY      |Avg. Turnaround Time (sec)  |
 |--------------|----------------------------|
 |1             |0.381259                    | 
 |2             |0.396865                    | 
@@ -96,6 +97,7 @@ Average turnaround times per priority: <br>
 |8             |0.495764                    | 
 |9             |0.461886                    | 
 |10            |0.540848                    | 
+
 ************************************************************ <br>
 
 
