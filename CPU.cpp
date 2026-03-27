@@ -1,4 +1,5 @@
 #include "CPU.h"
+#include "Process.h"
 
 
 CPU::CPU(){
@@ -15,6 +16,26 @@ void CPU::setBusy(){
 
 void CPU::setIdle(){
     this->busy = false;
+}
+
+void CPU::readyQueuePush(Process* proc){
+    this->readyQueue.push(proc);
+}
+
+void CPU::readyQueuePop(){
+    this->readyQueue.pop();
+}
+
+Process* CPU::readyQueueFront(){
+    return this->readyQueue.front();
+}
+
+bool CPU::readyQueueIsEmpty(){
+    return this->readyQueue.empty();
+}
+
+int CPU::readyQueueSize(){
+    return this->readyQueue.size();
 }
 
 

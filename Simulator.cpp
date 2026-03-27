@@ -29,6 +29,10 @@ int main(){
     }
 
     else{
+        cout << "Please input parameters in the following format: " << endl;
+        cout << "[Avg arrival rate] [avg service time] [base quantum] [scaling factor A] [scaling factor B]" << endl;
+        cout << "Ex: 12 0.06 0.03 100 1" << endl;
+        cout << "Input: ";
         cin >> average_arrival_rate >> average_service_rate >>
                base_quantum >> scaling_factor_A >> scaling_factor_B;
     }
@@ -43,23 +47,14 @@ void Simulator(double avg_arr_rate, double avg_svc_time, double base_quant, doub
     
     bool doDebugText = false;
 
-    // Need to track:
-    // - Average turnaround time (done)
-    // - Average number of context switches
-    //   Have each process track their number of arrivals?
-    // - Average number of processes in the ready queue
-    //   ?
-
-    // Idea for the ready queue average tracking:
-    // Each time we context switch, take (time since last * ready Queue size) and add to sum
-    // At end, divide sum by total time
-
     cout << endl;
     cout << "> Simulator starting..." << endl;
 
     Calculations calculator;
 
-    queue<Process*> readyQueue; // Ready queue of processes
+    // TODO: Replace with CPU's readyQueue
+    // queue<Process*> readyQueue; // Ready queue of processes
+    
     priority_queue<Event> eventQueue; // Queue of events
     CPU cpu; // CPU we will use
 
@@ -87,7 +82,7 @@ void Simulator(double avg_arr_rate, double avg_svc_time, double base_quant, doub
     double service_time, local_arrival_time;
     int priority;
 
-    cout << "> Generating processes..." << endl << endl;
+    cout << "> Generating processes..." << endl;
 
     for (int i = 0; i < NUM_PROCESSES; i++){
         service_time = calculator.calculate_service_time(avg_svc_time);
@@ -118,7 +113,7 @@ void Simulator(double avg_arr_rate, double avg_svc_time, double base_quant, doub
     Process* currentProcess = nullptr;
     Process* previousProcess = nullptr;
 
-    cout << "> Running simulation..." << endl;
+    cout << "> Running simulation..." << endl << endl;
 
     // MAIN LOOP
     while (completedProcesses < NUM_PROCESSES){
@@ -147,10 +142,10 @@ void Simulator(double avg_arr_rate, double avg_svc_time, double base_quant, doub
                 if (doDebugText) cout << "CPU is free, scheduling service event now..." << endl;
                 Event serviceEvent = Event(service_arrival, currentProcess, currentTime);
                 eventQueue.push(serviceEvent);
-                readyQueue.push(currentProcess);
+                cpu.readyQueuePush(currentProcess);
             } else { // Else, add to readyQueue.
                 if (doDebugText) cout << "CPU is busy, adding process to ready queue..." << endl;
-                readyQueue.push(currentProcess);
+                cpu.readyQueuePush(currentProcess);
             }
 
         } else if (eventToExecute.get_eventType() == process_departure){
@@ -165,7 +160,7 @@ void Simulator(double avg_arr_rate, double avg_svc_time, double base_quant, doub
 
         } else if (eventToExecute.get_eventType() == service_arrival){
 
-            serviceTimeByReadyQueueSizeSum += (currentTime - previousServiceTime) * readyQueue.size();
+            serviceTimeByReadyQueueSizeSum += (currentTime - previousServiceTime) * cpu.readyQueueSize();
             previousServiceTime = currentTime;
 
             // Determine if a context switch occurred
@@ -177,11 +172,11 @@ void Simulator(double avg_arr_rate, double avg_svc_time, double base_quant, doub
             }
 
             // Take process out of readyQueue
-            if (currentProcess != readyQueue.front()){
+            if (currentProcess != cpu.readyQueueFront()){
                 cout << "Error! Current process is not at front of readyQueue!" << endl;
             } else {
                 if (doDebugText) cout << "CurrentProcess is at the front of readyQueue. Good!" << endl;
-                readyQueue.pop();
+                cpu.readyQueuePop();
             }
 
             if (doDebugText) cout << "PID " << to_string((*currentProcess).get_PID()) << " has arrived for service. Servicing..." << endl;
@@ -216,7 +211,7 @@ void Simulator(double avg_arr_rate, double avg_svc_time, double base_quant, doub
             // Figure out if process needs more work or is done.
             if ((*currentProcess).get_remaining_svc_time() > 0.0){
                 if (doDebugText) cout << "Putting process back in ready queue..." << endl;
-                readyQueue.push(currentProcess);
+                cpu.readyQueuePush(currentProcess);
             } else {
                 if (doDebugText) cout << "Creating departure event..." << endl;
                 Event departureEvent = Event(process_departure, currentProcess, currentTime);
@@ -226,8 +221,8 @@ void Simulator(double avg_arr_rate, double avg_svc_time, double base_quant, doub
             cpu.setIdle();
 
             // Schedule service arrival of next process in readyQueue if there is one
-            if (!readyQueue.empty()){
-                Process* nextProcess = readyQueue.front();
+            if (!cpu.readyQueueIsEmpty()){
+                Process* nextProcess = cpu.readyQueueFront();
                 if (doDebugText) cout << "Scheduling service arrival of next process (PID " << to_string((*nextProcess).get_PID()) << ") in ready queue..." << endl;
                 Event nextProcessServiceArrival = Event(service_arrival, nextProcess, currentTime);
                 eventQueue.push(nextProcessServiceArrival);
@@ -257,13 +252,14 @@ void Simulator(double avg_arr_rate, double avg_svc_time, double base_quant, doub
     // Calculate average number of processes in the readyQueue
     double avgNumProcessesInReadyQueue = serviceTimeByReadyQueueSizeSum / currentTime;
 
-    cout << "**************************************************" << endl;
+    cout << "************************************************************" << endl;
     cout << "> Simulator has finished running." << endl;
     cout << "> RESULTS: " << endl;
     cout << "> Completed processes: " << to_string(completedProcesses) << "/" << to_string(NUM_PROCESSES) << endl;
     cout << "> Average turnaround time: " << to_string(avgTurnaroundTime) << " seconds" << endl;
     cout << "> Average number of context switches per process: " << to_string((static_cast<double>(contextSwitches) / static_cast<double>(NUM_PROCESSES))) << endl;
-    cout << "Average number of processes in the readyQueue: " << to_string(avgNumProcessesInReadyQueue) << endl;
+    cout << "> Average number of processes in the readyQueue: " << to_string(avgNumProcessesInReadyQueue) << endl;
+    cout << "************************************************************" << endl;
     cout << endl;
 }
 
